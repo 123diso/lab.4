@@ -1,14 +1,10 @@
 import { AppDispatcher } from './Dispatcher';
 
-export const VoteActionTypes = {
-    VOTE_FOR_DOG: 'VOTE_FOR_DOG',
-};
-
-export const VoteActions = {
-    voteForDog: (dogId: string) => {
-        AppDispatcher.dispatch({
-            type: VoteActionTypes.VOTE_FOR_DOG,
-            payload: dogId,
-        });
-    },
+export const VotingActions = {
+  vote: (fightIndex: number, characterIndex: number) => {
+    AppDispatcher.dispatch({
+      type: 'VOTE',
+      payload: { fightIndex, characterIndex },
+    });
+  },
 };

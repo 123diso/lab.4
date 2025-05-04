@@ -1,6 +1,13 @@
 console.log("Hello, TypeScript!");
-import DogList from "./components/Header/DogList";
-import Root from "./components/root/root";
 
-customElements.define("my-dog-list", DogList);
-customElements.define("my-root", Root);
+import AppContainer from './components/AppContainer';
+import CharacterCard from './components/CharacterCard';
+import VotingStats from './components/VotingStats';
+
+customElements.define('app-container', AppContainer);
+customElements.define('character-card', CharacterCard);
+customElements.define('voting-stats', VotingStats);
+
+
+
+

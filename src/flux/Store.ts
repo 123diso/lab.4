@@ -1,75 +1,100 @@
 import { AppDispatcher, Action } from './Dispatcher';
-import { VoteActionTypes } from './actions';
 
-export type VoteState = {
-    votes: { [dogId: string]: number };
-    votedPairs: { [pairId: string]: boolean }
-    
+export type Character = {
+  name: string;
+  image: string;
+  votes: number;
+  voted?: boolean;
 };
 
-type Listener = (state: VoteState) => void;
+export type State = {
+  fights: [Character, Character][];
+};
 
-class VoteStore {
-    private _state: VoteState = {
-        votes: {},
-        votedPairs: {},
-    };
-    private _listeners: Listener[] = [];
-
-    constructor() {
-        AppDispatcher.register(this._handleActions.bind(this));
-        this._loadState();
+function loadStateFromStorage(): State | null {
+  const saved = localStorage.getItem('fights-state');
+  if (saved) {
+    try {
+      return JSON.parse(saved);
+    } catch {
+      return null;
     }
-
-    getState(): VoteState {
-        return this._state;
-    }
-
-    private _handleActions(action: Action): void {
-        switch (action.type) {
-            case VoteActionTypes.VOTE_FOR_DOG:
-                const dogId = action.payload;
-                this._state = {
-                    ...this._state,
-                    votes: {
-                        ...this._state.votes,
-                        [dogId]: (this._state.votes[dogId] || 0) + 1,
-                    },
-                };
-                this._emitChange();
-                break;
-            default:
-                break;
-        }
-        this._saveState();
-    }
-
-
-    subscribe(listener: Listener): () => void {
-        this._listeners.push(listener);
-        listener(this.getState());
-        
-
-        return () => {
-            this._listeners = this._listeners.filter(l => l !== listener);
-        };
-    }
-
-    private _emitChange(): void {
-        this._listeners.forEach(listener => listener(this.getState()));
-    }
-
-    private _saveState(): void {
-        localStorage.setItem('dogVotingState', JSON.stringify(this._state));
-    }
-
-    private _loadState(): void {
-        const storedState = localStorage.getItem('dogVotingState');
-        if (storedState) {
-            this._state = JSON.parse(storedState);
-            this._emitChange();
-        }
-    }
+  }
+  return null;
 }
 
-export const voteStore = new VoteStore();
+const defaultState: State = {
+  fights: Array.from({ length: 8 }, (_, i) => [
+    { name: `Peleador ${i * 2 + 1}`, image: 'https://via.placeholder.com/100', votes: 0 },
+    { name: `Peleador ${i * 2 + 2}`, image: 'https://via.placeholder.com/100', votes: 0 },
+  ]),
+};
+
+const initialState: State = loadStateFromStorage() || defaultState;
+
+
+type Listener = (state: State) => void;
+
+class Store {
+  private state: State = initialState;
+  private listeners: Listener[] = [];
+
+  constructor() {
+    AppDispatcher.register(this.handleActions.bind(this));
+  }
+
+  getState() {
+    return this.state;
+  }
+
+  subscribe(listener: Listener) {
+    this.listeners.push(listener);
+  }
+
+  private emitChange() {
+    localStorage.setItem('fights-state', JSON.stringify(this.state));
+    for (const listener of this.listeners) {
+      listener(this.state);
+    }
+  }
+  
+
+  private handleActions(action: Action) {
+    switch (action.type) {
+      case 'VOTE': {
+        const { fightIndex, characterIndex } = action.payload as { fightIndex: number; characterIndex: number };
+        const fights = [...this.state.fights];
+        const fight = [...fights[fightIndex]];
+      
+        const currentVotedIndex = fight.findIndex(c => c.voted);
+      
+
+        if (currentVotedIndex === characterIndex) break;
+      
+
+        if (currentVotedIndex !== -1) {
+          fight[currentVotedIndex] = {
+            ...fight[currentVotedIndex],
+            votes: Math.max(0, fight[currentVotedIndex].votes - 1),
+            voted: false,
+          };
+        }
+      
+
+        fight[characterIndex] = {
+          ...fight[characterIndex],
+          votes: fight[characterIndex].votes + 1,
+          voted: true,
+        };
+      
+        fights[fightIndex] = fight as [Character, Character];
+        this.state = { fights };
+        this.emitChange();
+        break;
+      }
+      
+    }
+  }
+}
+
+export const store = new Store();
